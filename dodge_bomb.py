@@ -16,33 +16,47 @@ DELTA = {
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-def gameover(screen: pg.Surface) -> None:
-    """
-    画面をブラックアウトし、泣いているこうかとん画像と
-    'Game Over' を5秒間表示する
-    """
-    # 1.黒い半透明のSurfaceを作る
-    black_sfc = pg.Surface((WIDTH, HEIGHT))
-    black_sfc.set_alpha(200)
-    black_sfc.fill((0, 0, 0))  # 黒く塗る
+def init_bb_imgs() -> tuple[list[pg.Surface],list[int]]:
+    bb_imgs = []
+    bb_accs = []
+    for r in range(1,11):
+        bb_img = pg.Surface((20*r, 20*r))
+        pg.draw.circle(bb_img,(255,0,0),(10*r,10*r),10*r)
+        bb_imgs.append(bb_img)
+        bb_accs = [a for a in range(1,11)]
 
-    # 2.「Game Over」文字Surfaceを作る
+    return bb_imgs,bb_accs
+
+
+
+def gameover(screen: pg.Surface) -> None:
+    # 1. 黒半透明の画面
+    black_sfc = pg.Surface((WIDTH, HEIGHT))
+    black_sfc.set_alpha(180)
+    black_sfc.fill((0, 0, 0))
+
+    # 2. Game Over 文字
     fonto = pg.font.Font(None, 80)
     txt = fonto.render("Game Over", True, (255, 255, 255))
-    txt_rct = txt.get_rect(center=(WIDTH/2, HEIGHT/2 - 50))
+    txt_rct = txt.get_rect(center=(WIDTH/2, HEIGHT/2))
 
-    # 3.泣いているこうかとん画像
-    cry_img = pg.transform.rotozoom(pg.image.load("fig/8.png"), 0, 1.0)
-    cry_rct = cry_img.get_rect(center=(WIDTH/2, HEIGHT/2 + 80))
+    # 3. 泣いているこうかとん画像（右向き1種類だけ）
+    cry = pg.transform.rotozoom(pg.image.load("fig/8.png"), 0, 1.0)
 
-    # 4.画面に描画
+    # 並べる位置（左右）
+    cry_left_rct  = cry.get_rect(center=(WIDTH/2 - 200, HEIGHT/2))
+    cry_right_rct = cry.get_rect(center=(WIDTH/2 + 200, HEIGHT/2))
+
+    # 4. 描画
     screen.blit(black_sfc, (0, 0))
     screen.blit(txt, txt_rct)
-    screen.blit(cry_img, cry_rct)
+    screen.blit(cry, cry_left_rct)   # 左も右向き
+    screen.blit(cry, cry_right_rct)  # 右も右向き
 
-    # 5.更新して5秒停止
+    # 5秒停止
     pg.display.update()
     pg.time.wait(5000)
+
 
     
 def check_bound(rct:pg.Rect)->tuple[bool,bool]:
