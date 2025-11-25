@@ -19,16 +19,13 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 def init_bb_imgs() -> tuple[list[pg.Surface],list[int]]:
     bb_imgs = []
     bb_accs = []
-
     for r in range(1,11):
         bb_img = pg.Surface((20*r, 20*r))
         bb_img.set_colorkey((0,0,0))
         pg.draw.circle(bb_img,(255,0,0),(10*r,10*r),10*r)
         bb_imgs.append(bb_img)
         bb_accs = [a for a in range(1,11)]
-
     return bb_imgs,bb_accs
-
 
 
 def gameover(screen: pg.Surface) -> None:
@@ -37,24 +34,21 @@ def gameover(screen: pg.Surface) -> None:
     black_sfc.set_alpha(180)
     black_sfc.fill((0, 0, 0))
 
+    
     # 2. Game Over 文字
     fonto = pg.font.Font(None, 80)
     txt = fonto.render("Game Over", True, (255, 255, 255))
     txt_rct = txt.get_rect(center=(WIDTH/2, HEIGHT/2))
-
     # 3. 泣いているこうかとん画像（右向き1種類だけ）
     cry = pg.transform.rotozoom(pg.image.load("fig/8.png"), 0, 1.0)
-
     # 並べる位置（左右）
     cry_left_rct  = cry.get_rect(center=(WIDTH/2 - 200, HEIGHT/2))
     cry_right_rct = cry.get_rect(center=(WIDTH/2 + 200, HEIGHT/2))
-
     # 4. 描画
     screen.blit(black_sfc, (0, 0))
     screen.blit(txt, txt_rct)
     screen.blit(cry, cry_left_rct)   # 左も右向き
     screen.blit(cry, cry_right_rct)
-
     # 5秒停止
     pg.display.update()
     pg.time.wait(5000)
@@ -99,7 +93,8 @@ def main():
                 return
             
 
-        screen.blit(bg_img, [0, 0]) 
+
+        screen.blit(bg_img, [0, 0])
 
 
 
@@ -145,22 +140,20 @@ def main():
         avx = vx * bb_accs[min(tmr//500, 9)]      # 加速した x速度
         avy = vy * bb_accs[min(tmr//500, 9)]      # 加速した y速度
         bb_img = bb_imgs[min(tmr//500, 9)]        # 拡大した爆弾画像
-        # Surface の大きさが変わったら、Rect の幅と高さを書き換える
+        
+        bb_rct.move_ip(avx, avy)  # 移動（加速後の速度で）
+        screen.blit(bb_img, bb_rct)  # 描画
+        bb_rct.move_ip(avx, avy)  # 移動
+
         bb_rct.width  = bb_img.get_rect().width
         bb_rct.height = bb_img.get_rect().height
-        # 移動（加速後の速度で）
-        bb_rct.move_ip(avx, avy)
-        # 描画
-        screen.blit(bb_img, bb_rct)
-        # 移動
-        bb_rct.move_ip(avx, avy)
 
 
         pg.display.update()
         tmr += 1
         clock.tick(50)
 
-        
+
 
 if __name__ == "__main__":
     pg.init()
