@@ -17,6 +17,13 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
+    """
+    戻り値：タプル（1. 爆弾Surfaceのリスト, 2. 爆弾の速度リスト）
+    処理内容：
+    半径 10～100 の赤い円を描画した爆弾Surfaceを 10 個作成
+    各爆弾Surfaceは黒を透過色に設定
+    爆弾の速度を 1～10 のリストとして作成
+    """
     bb_imgs = []
     bb_accs = []
     for r in range(1, 11):
@@ -30,6 +37,15 @@ def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
 
 
 def gameover(screen: pg.Surface) -> None:
+    """
+    引数：screen（描画対象の Pygame Surface）
+    戻り値：なし
+    処理内容：
+    黒の半透明Surfaceを作成して画面全体に表示
+    "Game Over" の文字を画面中央に描画
+    泣いているこうかとん画像を左右に配置して描画
+    描画後、画面を更新して 5 秒間停止
+    """
     # 1. 黒半透明の画面
     black_sfc = pg.Surface((WIDTH, HEIGHT))
     black_sfc.set_alpha(180)
@@ -147,11 +163,6 @@ def main():
         avx = vx * bb_accs[idx]
         avy = vy * bb_accs[idx]
         bb_img = bb_imgs[idx]
-
-        # リストから取り出した新しい画像のサイズに合わせてRectを更新（中心位置は維持）
-        # これをしないと当たり判定のサイズが変わらない
-        # （ただし move_ip 前にやると位置がずれる可能性があるので注意。
-        #   ここではシンプルに元のコードのロジックを整理します）
         
         # 爆弾の移動（画面端判定）
         bb_rct.move_ip(avx, avy)
