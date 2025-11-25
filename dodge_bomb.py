@@ -16,6 +16,35 @@ DELTA = {
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
+def gameover(screen: pg.Surface) -> None:
+    """
+    画面をブラックアウトし、泣いているこうかとん画像と
+    'Game Over' を5秒間表示する
+    """
+    # 1.黒い半透明のSurfaceを作る
+    black_sfc = pg.Surface((WIDTH, HEIGHT))
+    black_sfc.set_alpha(200)
+    black_sfc.fill((0, 0, 0))  # 黒く塗る
+
+    # 2.「Game Over」文字Surfaceを作る
+    fonto = pg.font.Font(None, 80)
+    txt = fonto.render("Game Over", True, (255, 255, 255))
+    txt_rct = txt.get_rect(center=(WIDTH/2, HEIGHT/2 - 50))
+
+    # 3.泣いているこうかとん画像
+    cry_img = pg.transform.rotozoom(pg.image.load("fig/8.png"), 0, 1.0)
+    cry_rct = cry_img.get_rect(center=(WIDTH/2, HEIGHT/2 + 80))
+
+    # 4.画面に描画
+    screen.blit(black_sfc, (0, 0))
+    screen.blit(txt, txt_rct)
+    screen.blit(cry_img, cry_rct)
+
+    # 5.更新して5秒停止
+    pg.display.update()
+    pg.time.wait(5000)
+
+    
 def check_bound(rct:pg.Rect)->tuple[bool,bool]:
     """
 引数：こうかとんRectか爆弾Rect
@@ -42,18 +71,30 @@ def main():
     bb_img.set_colorkey((0,0,0))
     bb_rct = bb_img.get_rect()  # 爆弾rect
     bb_rct.center = random.randint(0,WIDTH), random.randint(0,HEIGHT)
-    vx,vy =+5,+ 5  # 爆弾の横移動、縦移動
+    vx,vy = +5,+5  # 爆弾の横移動、縦移動
     clock = pg.time.Clock()
     tmr = 0
+
+
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT: 
                 return
+            
+
         screen.blit(bg_img, [0, 0]) 
 
+
+
         if kk_rct.colliderect(bb_rct):
-            print("game over")
+            gameover(screen)
             return
+
+        # if kk_rct.colliderect(bb_rct):
+        #     print("game over")
+        #     return
+        
+
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
         # if key_lst[pg.K_UP]:
