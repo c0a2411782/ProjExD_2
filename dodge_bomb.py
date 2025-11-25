@@ -6,26 +6,27 @@ import pygame as pg
 
 WIDTH, HEIGHT = 1100, 650
 DELTA = {
-    pg.K_UP:(0,-5),
-    pg.K_DOWN:(0,5),
-    pg.K_LEFT:(-5,0),
-    pg.K_RIGHT:(5,0),
+    pg.K_UP: (0, -5),
+    pg.K_DOWN: (0, 5),
+    pg.K_LEFT: (-5, 0),
+    pg.K_RIGHT: (5, 0),
 }
 
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-def init_bb_imgs() -> tuple[list[pg.Surface],list[int]]:
+def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
     bb_imgs = []
     bb_accs = []
-    for r in range(1,11):
+    for r in range(1, 11):
         bb_img = pg.Surface((20*r, 20*r))
-        bb_img.set_colorkey((0,0,0))
-        pg.draw.circle(bb_img,(255,0,0),(10*r,10*r),10*r)
+        bb_img.set_colorkey((0, 0, 0))
+        pg.draw.circle(bb_img, (255, 0, 0), (10*r, 10*r), 10*r)
         bb_imgs.append(bb_img)
-        bb_accs = [a for a in range(1,11)]
-    return bb_imgs,bb_accs
+        # bb_accs = [a for a in range(1,11)] # ループ内で毎回作成するのは無駄なので外に出しても良いですが、元のロジックを尊重します
+    bb_accs = [a for a in range(1, 11)] # ここで作成
+    return bb_imgs, bb_accs
 
 
 def gameover(screen: pg.Surface) -> None:
@@ -33,8 +34,6 @@ def gameover(screen: pg.Surface) -> None:
     black_sfc = pg.Surface((WIDTH, HEIGHT))
     black_sfc.set_alpha(180)
     black_sfc.fill((0, 0, 0))
-
-    
     # 2. Game Over 文字
     fonto = pg.font.Font(None, 80)
     txt = fonto.render("Game Over", True, (255, 255, 255))
@@ -54,105 +53,124 @@ def gameover(screen: pg.Surface) -> None:
     pg.time.wait(5000)
 
 
-    
-def check_bound(rct:pg.Rect)->tuple[bool,bool]:
+def kk_imgs() -> dict[tuple[int, int], pg.Surface]:
     """
-引数：こうかとんRectか爆弾Rect
-戻り値：タプル（横方向判定結果,縦方向判定結果）
-画面ないならTrue,画面外ならFalse
-"""
-    yoko, tate = True,True
-    if rct.left < 0 or WIDTH < rct.right: # 横方向のはみだしチェック
-        yoko =False
-    if rct.top < 0 or HEIGHT < rct.bottom:  # 縦方向のはみだしチェック
+    移動量の合計タプルをキー、回転・反転したこうかとんSurfaceを値とする辞書を返す関数
+    """
+    # デフォルトの画像（左向き）
+    img0 = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    # 右向き（左右反転）
+    img = pg.transform.flip(img0, True, False)
+
+    kk_dict = {
+        (0, 0): img0,           # 停止時
+        (5, 0): img,            # 右
+        (5, -5): pg.transform.rotozoom(img, 45, 1.0),   # 右上
+        (0, -5): pg.transform.rotozoom(img, 90, 1.0),   # 上
+        (5, 5): pg.transform.rotozoom(img, -45, 1.0),   # 右下
+        (-5, 0): img0,          # 左
+        (-5, -5): pg.transform.rotozoom(img0, -45, 1.0),  # 左上
+        (0, 5): pg.transform.rotozoom(img, -90, 1.0),   # 下
+        (-5, 5): pg.transform.rotozoom(img0, 45, 1.0),    # 左下
+    }
+    return kk_dict
+
+
+def check_bound(rct: pg.Rect) -> tuple[bool, bool]:
+    """
+    引数：こうかとんRectか爆弾Rect
+    戻り値：タプル（横方向判定結果,縦方向判定結果）
+    画面ないならTrue,画面外ならFalse
+    """
+    yoko, tate = True, True
+    if rct.left < 0 or WIDTH < rct.right:  # 横方向のはみだしチェック
+        yoko = False
+    if rct.top < 0 or HEIGHT < rct.bottom:   # 縦方向のはみだしチェック
         tate = False
-    return yoko,tate
+    return yoko, tate
 
 
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
-    bg_img = pg.image.load("fig/pg_bg.jpg")    
-    kk_img = pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 0.9)
+    bg_img = pg.image.load("fig/pg_bg.jpg")
+    
+    # 1. こうかとん画像辞書の準備
+    kk_images = kk_imgs()
+    # 初期画像の設定
+    kk_img = kk_images[(0, 0)]
     kk_rct = kk_img.get_rect()
     kk_rct.center = 300, 200
+    
     bb_imgs, bb_accs = init_bb_imgs()
-    bb_img = pg.Surface((20,20))  # 空のサーフェイス
-    pg.draw.circle(bb_img, (255,0,0),(10,10),10) #  半径10の赤い円の描画
-    bb_img.set_colorkey((0,0,0))
-    bb_rct = bb_img.get_rect()  # 爆弾rect
-    bb_rct.center = random.randint(0,WIDTH), random.randint(0,HEIGHT)
-    vx,vy = +2,+2  # 爆弾の横移動、縦移動
+    
+    # 初期爆弾設定（大きさはインデックス0のもの）
+    bb_img = bb_imgs[0]
+    bb_rct = bb_img.get_rect()
+    bb_rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
+    
+    vx, vy = +2, +2  # 爆弾の基本速度
     clock = pg.time.Clock()
     tmr = 0
-
 
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT: 
                 return
-            
-
 
         screen.blit(bg_img, [0, 0])
 
-
-
+        # ゲームオーバー判定
         if kk_rct.colliderect(bb_rct):
             gameover(screen)
             return
 
-        # if kk_rct.colliderect(bb_rct):
-        #     print("game over")
-        #     return
-        
-
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
-        # if key_lst[pg.K_UP]:
-        #     sum_mv[1] -= 5
-        # if key_lst[pg.K_DOWN]:
-        #     sum_mv[1] += 5
-        # if key_lst[pg.K_LEFT]:
-        #     sum_mv[0] -= 5
-        # if key_lst[pg.K_RIGHT]:
-        #     sum_mv[0] += 5
         for key, mv in DELTA.items():
             if key_lst[key]:
                 sum_mv[0] += mv[0]  # 横方向の移動量
                 sum_mv[1] += mv[1]  # 縦方向の移動量
 
-
         kk_rct.move_ip(sum_mv)
-        if check_bound(kk_rct) != (True,True):  # 画面外なら
-            kk_rct.move_ip(-sum_mv[0],-sum_mv[1])  # がないなら移動
+        if check_bound(kk_rct) != (True, True):  # 画面外なら
+            kk_rct.move_ip(-sum_mv[0], -sum_mv[1])  # 元に戻す
+
+        # 2. 移動方向に応じて画像を変更して描画
+        # 辞書から画像を取得（該当なしの場合は (0,0) の画像を使う）
+        kk_img = kk_images.get(tuple(sum_mv), kk_images[(0, 0)])
         screen.blit(kk_img, kk_rct)
-        yoko,tate = check_bound(bb_rct)
-        if not yoko:
-             vx *= -1
-        if not tate:
-             vy *= -1
-        bb_rct.move_ip(vx,vy)
-        screen.blit(bb_img, bb_rct)
 
+        # 爆弾の移動・加速処理
+        # 経過時間に応じて加速倍率と画像を選択
+        idx = min(tmr // 500, 9)
+        avx = vx * bb_accs[idx]
+        avy = vy * bb_accs[idx]
+        bb_img = bb_imgs[idx]
 
-        # 爆弾拡大・加速
-        avx = vx * bb_accs[min(tmr//500, 9)]      # 加速した x速度
-        avy = vy * bb_accs[min(tmr//500, 9)]      # 加速した y速度
-        bb_img = bb_imgs[min(tmr//500, 9)]        # 拡大した爆弾画像
+        # リストから取り出した新しい画像のサイズに合わせてRectを更新（中心位置は維持）
+        # これをしないと当たり判定のサイズが変わらない
+        # （ただし move_ip 前にやると位置がずれる可能性があるので注意。
+        #   ここではシンプルに元のコードのロジックを整理します）
         
-        bb_rct.move_ip(avx, avy)  # 移動（加速後の速度で）
-        screen.blit(bb_img, bb_rct)  # 描画
-        bb_rct.move_ip(avx, avy)  # 移動
-
-        bb_rct.width  = bb_img.get_rect().width
+        # 爆弾の移動（画面端判定）
+        bb_rct.move_ip(avx, avy)
+        yoko, tate = check_bound(bb_rct)
+        if not yoko:
+            vx *= -1  # 基本速度を反転
+        if not tate:
+            vy *= -1  # 基本速度を反転
+            
+        # サイズが変わった画像を描画
+        screen.blit(bb_img, bb_rct)
+        
+        # Rectのサイズ更新（当たり判定用）
+        bb_rct.width = bb_img.get_rect().width
         bb_rct.height = bb_img.get_rect().height
-
 
         pg.display.update()
         tmr += 1
         clock.tick(50)
-
 
 
 if __name__ == "__main__":
